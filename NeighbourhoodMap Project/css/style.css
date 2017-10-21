@@ -1,0 +1,33 @@
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+#map {
+    height: 100%;
+}
+.begin {
+    width: 100%;
+    color: blue;
+    background-color: cyan;
+}
+.list {
+    width: 23%;
+    background-color: #000022;
+    font-family: "Times New Roman", Times, serif;
+    color: white;
+    font-size: 18px;
+    order: 1;
+    cursor: pointer;
+}
+.map {
+    width: 77%;
+    order: 2;
+}
+.container {
+    width: 100%;
+    background-color: blue;
+    display: flex;
+    flex-wrap: wrap;
+}
