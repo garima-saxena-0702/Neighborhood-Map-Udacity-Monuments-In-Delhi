@@ -1,99 +1,58 @@
 var defaultIcon, highlightedIcon, largeinfowindow;
 var markers = [];
+var marker;
 var bounds;
-var indicator = false;
+var indicator = false, indi = true;
 var map;
-//adding name and location of monuments
-var initialLocations = [{
-        "name": "National Zoological park Delhi",
-        "location": {
-            "lat": 28.608632,
-            "lng": 77.246680
-        }
-    },
-    {
-        "name": "Humayun Tomb",
-        "location": {
-            "lat": 28.598383,
-            "lng": 77.250285
-        }
-    },
-    {
-        "name": "Purana Quila",
-        "location": {
-            "lat": 28.614739,
-            "lng": 77.243247
-        }
-    },
-    {
-        "name": "National Gallery of Modern Art",
-        "location": {
-            "lat": 28.609917,
-            "lng": 77.234492
-        }
-    },
-    {
-        "name": "Akshardham (Delhi)",
-        "location": {
-            "lat": 28.612780,
-            "lng": 77.277064
-        }
-    },
-    {
-        "name": "India Gate",
-        "location": {
-            "lat": 28.613192,
-            "lng": 77.229471
-        }
-    },
-    {
-        "name": "Red Fort",
-        "location": {
-            "lat": 28.656159,
-            "lng": 77.241010
-        }
-    },
-    {
-        "name": "Agrasen Ki Baoli",
-        "location": {
-            "lat": 28.626113,
-            "lng": 77.224966
-        }
-    }
-];
-
 var mapLocations = initialLocations;
+var mark = [];
 
 //defining a MapAppViewModel
 function MapAppViewModel() {
     // Data
     var self = this;
     self.searchName = ko.observable("");
+    self.indi = ko.observable("false");
     //filter the items using the filter text
     this.locations = ko.computed(function() {
         var filter = self.searchName().toLowerCase();
-        if (!filter) {
-            mapLocations = initialLocations;
-            return initialLocations;
-        } else {
+        if (filter !== "") {
             var matchedLocations = [];
             mapLocations = [];
-            markers = [];
+            //markers = [];
+            for (var i = 0; i < markers.length; i++) {
+                markers[i].setVisible(false);
+            }
             for (i = 0; i < initialLocations.length; i++) {
                 if (initialLocations[i].name.toLowerCase().includes(filter)) {
                     matchedLocations.push(initialLocations[i]);
                     mapLocations.push(initialLocations[i]);
+                    markers[i].setVisible(true);
                 }
             }
-            initMap();
+            indi = false;
+            //initMap();
             return matchedLocations;
+        } else {
+            mapLocations = initialLocations;
+            /*for(var j = 0; j < mark.length; j++) {
+                setBound(mark);
+            }*/
+            for (var j = 0; j < markers.length; j++) {
+                markers[j].setVisible(true);
+            }
+            return initialLocations;
         }
     }, MapAppViewModel);
+
     self.clearClick = function() {
         self.searchName("");
         mapLocations = initialLocations;
-        initMap();
+        //mark.setVisibility(true);
+        //markers = [];
+        //initMap();
     };
+
     self.listClick = function() {
         var text = event.target.textContent;
         indicator = true;
@@ -101,14 +60,21 @@ function MapAppViewModel() {
             if (initialLocations[k].name === text) {
                 var position = initialLocations[k].location;
                 var title = initialLocations[k].name;
-                setMarker(position, title, k);
+                populateInfoWindow(markers[k], largeinfowindow);
+                toggleBounce(markers[k]);
             }
         }
     };
-};
+}
+
 //Activating Knockout
 ko.applyBindings(new MapAppViewModel());
 
+//function for error on loading the map
+var mapError = function() {
+  // Error handling
+  alert("Oops! An error");
+};
 
 //defining function initMap to initialize Map
 function initMap() {
@@ -138,6 +104,7 @@ function initMap() {
     for (var i = 0; i < mapLocations.length; i++) {
         var position = mapLocations[i].location;
         var title = mapLocations[i].name;
+        //alert("hell");
         setMarker(position, title, i);
     }
 }
@@ -154,9 +121,10 @@ function makeMarkerIcon(markerColor) {
     return markerImage;
 }
 
+
 //function to set the marker at given position
 function setMarker(position, title, i) {
-    var marker = new google.maps.Marker({
+    marker = new google.maps.Marker({
         //map: map,
         position: position,
         title: title,
@@ -165,13 +133,18 @@ function setMarker(position, title, i) {
         id: i
     });
     markers.push(marker);
+    if(indi === true) {
+        mark.push(marker);
+    }
     bounds.extend(marker.position);
     if (indicator === true) {
         indicator = false;
         populateInfoWindow(marker, largeinfowindow);
+        toggleBounce(marker);
     }
     marker.addListener('click', function() {
         populateInfoWindow(this, largeinfowindow);
+        toggleBounce(this);
     });
     marker.addListener('mouseover', function() {
         this.setIcon(highlightedIcon);
@@ -179,11 +152,27 @@ function setMarker(position, title, i) {
     marker.addListener('mouseout', function() {
         this.setIcon(defaultIcon);
     });
-    setBound();
+     /*marker.addListener('click', function() {
+        toggleBounce(this);
+     });*/
+    setBound(markers);
+}
+
+//function for toggleBounce
+function toggleBounce(marker) {
+    if (marker.getAnimation() !== null) {
+        marker.setAnimation(null);
+    } else {
+        marker.setAnimation(google.maps.Animation.BOUNCE);
+        //alert(marker.id);
+        setTimeout(function() {
+            marker.setAnimation(null); //setting merker null after timeout.
+        }, 1400);  // setting time out time of 1400s.
+    }
 }
 
 //setting bounds of the marker
-function setBound() {
+function setBound(markers) {
     var bounds = new google.maps.LatLngBounds();
     // Extend the boundaries of the map for each marker and display the marker
     for (var i = 0; i < markers.length; i++) {
@@ -195,14 +184,23 @@ function setBound() {
 
 //info window having information from wikipedia
 function populateInfoWindow(marker, infowindow) {
-    var wiki = 'https://en.wikipedia.org/w/api.php?action=opensearch&search=' + marker.title + '&imlimit=5&format=json&callback=wikiCallback';;
+    var wiki = 'https://en.wikipedia.org/w/api.php?action=opensearch&search=' + marker.title + '&imlimit=5&format=json&callback=wikiCallback';
     //var wiki = "https://en.wikipedia.org/w/api.php?format=json&action=query&generator=search&gsrsearch=" + marker.title + "&gsrlimit=15&prop=extracts&exsentences=3&exintro=&explaintext&exlimit=max&callback=JSON_CALLBACK"
+    //alert(marker.title);
     var wikiResponse = wikiAjax(wiki);
     wikiResponse.done(function(data) {
         console.log(data);
 
         var wikiUrl = data[3][0];
         var wikiData = data[2][0];
+
+        if (wikiData === "") {
+            wikiData = "No info available!";
+        }
+
+        if (wikiUrl === "") {
+            wikiUrl = "Not a URL";
+        }
 
         if (infowindow.marker != marker) {
             infowindow.marker = marker;
@@ -231,10 +229,8 @@ function wikiAjax(searchURL) {
     });
 }
 
-//Map error function
-function mapError() {
-    this.mapElem = document.getElementById('map');
-    this.area = document.createElement('div');
-    this.area.innerHTML = "Sorry!! Map can't be loaded.";
-    mapElem.appendChild(mapElem);
-}
+//handler for mapr error
+//window.onerror = function() {  // on error function yo catch any error include loading map
+//    alert('An error has occurred!');
+//    return true;
+//};
