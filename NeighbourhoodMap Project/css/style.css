@@ -31,3 +31,21 @@ body {
     display: flex;
     flex-wrap: wrap;
 }
+
+@media screen and (max-width: 700px) {
+    .list {
+        width: 35%;
+    }
+    .map {
+        width: 65%;
+    }
+}
+
+@media screen and (max-width: 350px) {
+    .list {
+        width: 50%;
+    }
+    .map {
+        width: 50%;
+    }
+}
